@@ -12,18 +12,33 @@
 </head>
 <body>
 
-<header>
-  <h1>Brahma Chopp 4 Dashboard</h1>
-</header>
-
 <main class="dashboard-container">
   <div class="botoes-container">
-    <button id="btn-donut">Gráfico Donut</button>
-    <button id="btn-barra">Gráfico Barra</button>
+    <select id="tipo-grafico">
+      <option value="governador">Valores definidos pelo Governador</option>
+      <option value="orgaos">Valores planejados pelos Órgãos</option>
+      <option value="comparacao1">Comparação entre valores definidos pelo Governador e planejados pelos Órgãos</option>
+    </select>
+    
+    <label for="filtro-setor">Filtrar por Setor:</label>
+    <select id="filtro-setor">
+      <option value="">Todos</option>
+    </select>
+  
+    <label for="filtro-orgao">Filtrar por Órgão:</label>
+    <select id="filtro-orgao">
+      <option value="">Todos</option>
+    </select>
+
   </div>
 
-  <section id="grafico-container" class="grafico-container"></section>
-  <section id="tabela-container" class="tabela-container"></section>
+  <div class="grafico-wrapper">
+    <section id="grafico-container" class="grafico-container"></section>
+  </div>
+  
+  <div class="tabela-wrapper">
+    <section id="tabela-container" class="tabela-container"></section>
+  </div>
 </main>
 
 <script src="js/scripts.js"></script>

@@ -33,16 +33,8 @@
   /* Estilo para o container de gráfico */
   .grafico-container {
     background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-  
-  /* Estilo para o container de tabela */
-  .tabela-container {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
+    padding: 5px;
+    border-radius: 5px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   }
   
@@ -64,11 +56,6 @@
         overflow: hidden;
         padding-left: 20px; /* opcional: um pequeno espaçamento da borda esquerda */
       }
-
-    .tabela-container {
-        min-width: 800px;
-        height: 500px;
-      }
   }
 
 .filtros-container {
@@ -84,27 +71,114 @@
   padding: 5px;
 }
 
+.tabela-container {
+  background: white;
+  padding: 5px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow-x: hidden; /* <=== ESSENCIAL */
+  overflow-y: auto;
+  width: 100%;
+  height: 500px; /* altura que você quiser */
+}
+
 .tabulator-table {
-    table-layout: fixed !important;
-    width: 100% !important;
-  }
-  
-  .tabulator-tableHolder {
-    overflow-x: hidden !important;
-  }
-  
-  .tabulator-col-title {            
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
-  }
-  
-  .tabulator-cell {
-    white-space: normal !important;
-    word-break: break-word !important;
-    overflow-wrap: anywhere !important;
-    vertical-align: top !important;
-  }
-  
-  .tabulator-row {
-    height: auto !important;
-  }
+  table-layout: fixed !important; /* Fixar tamanho da coluna */
+  width: 100% !important;
+}
+
+.tabulator-tableHolder {
+  overflow-x: hidden !important; /* BLOQUEIA scroll lateral */
+  overflow-y: auto !important;   /* PERMITE scroll vertical */
+}
+
+.tabulator-cell {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  vertical-align: top !important;
+  padding: 4px 6px !important;
+}
+
+.tabulator {
+  background-color: white !important;
+}
+
+.tabulator-header {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  background-color: white !important;
+  padding-top: 3px !important;
+  padding-bottom: 3px !important;
+  height: auto !important; /* <<< ESSENCIAL */
+}
+
+
+.tabulator-col-title {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+/* A classe que ativa o textarea formatter */
+.wrap-text {
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  font-size: 11px !important;
+}
+
+.graficos-auxiliares {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.grafico-auxiliar {
+  background: white;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  width: 400px;  /* Mesma largura que seus gráficos já têm */
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.linha-graficos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.grafico-principal {
+  background: white;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  width: 450px; /* Largura maior para o principal */
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grafico-auxiliar {
+  background: white;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  width: 400px;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+* { font-family: 'Gotham', sans-serif !important; }

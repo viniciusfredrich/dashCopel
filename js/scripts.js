@@ -49,7 +49,7 @@ const coresSobrias = [
       textposition: "outside",
     }], {
       title: titulo,
-      width: 700,
+      width: 450,
       height: 400,
       showlegend: false,
     });
@@ -58,14 +58,28 @@ const coresSobrias = [
     graficoContainer.on('plotly_click', function(data) {
       if (data.points.length > 0) {
         const labelClicado = data.points[0].label;
-  
+    
         if (setorSelecionado === labelClicado) {
           setorSelecionado = null;
           tabelaProjetos.clearFilter();
+          
+          // Resetar dropdowns
+          document.getElementById('filtro-setor').value = "";
+          document.getElementById('filtro-orgao').value = "";
+    
           desenharGraficoDonut(labels, valores, null, titulo, colunaFiltro);
         } else {
           setorSelecionado = labelClicado;
-          tabelaProjetos.setFilter(colunaFiltro, "=", setorSelecionado);
+    
+          if (colunaFiltro === "SETORES") {
+            document.getElementById('filtro-setor').value = setorSelecionado;
+            document.getElementById('filtro-orgao').value = ""; // Limpa órgão
+          } else if (colunaFiltro === "ÓRGÃO") {
+            document.getElementById('filtro-orgao').value = setorSelecionado;
+            document.getElementById('filtro-setor').value = ""; // Limpa setor
+          }
+    
+          aplicarFiltrosTabela(); // Aplica o filtro visualmente
           desenharGraficoDonut(labels, valores, setorSelecionado, titulo, colunaFiltro);
         }
       }
@@ -108,16 +122,40 @@ const coresSobrias = [
       const parsedProjetos = Papa.parse(textoProjetos, { header: true, delimiter: ";" });
       dadosProjetos = parsedProjetos.data.filter(row => row['SETORES']);
     
+      const colunas = [
+        { title: 'SETORES', field: 'SETORES' },
+        { title: 'ÓRGÃO', field: 'ÓRGÃO' },
+        { title: 'MUNICÍPIO', field: 'MUNICÍPIO' },
+        { title: 'PROJETO', field: 'PROJETO' },
+        { title: 'VALOR TOTAL DO PROJETO', field: 'VALOR TOTAL DO PROJETO' },
+        { title: 'ORÇAMENTO DISPONIBILIZADO', field: 'ORÇAMENTO DISPONIBILIZADO' },
+        { title: 'VALOR EMPENHADO', field: 'VALOR EMPENHADO' },
+        { title: 'VALOR LIQUIDADO', field: 'VALOR LIQUIDADO' },
+        { title: 'VALOR PAGO', field: 'VALOR PAGO' },
+        { title: 'SALDO', field: 'SALDO' },
+        { title: 'EXECUÇÃO FÍSICA', field: 'EXECUÇÃO FÍSICA' },
+        { title: 'EXECUÇÃO FINANCEIRA', field: 'EXECUÇÃO FINANCEIRA' },
+        { title: 'STATUS', field: 'STATUS' },
+        { title: 'OBSERVAÇÃO', field: 'OBSERVAÇÃO' }
+      ];
+            
+
       tabelaProjetos = new Tabulator("#tabela-container", {
         data: dadosProjetos,
-        autoColumns: true,
-        layout: "fitDataStretch", // Para esticar
+        layout: "fitColumns",
         pagination: false,
-        height: "300px",
+        columns: colunas,
+        height: "340px",
         responsiveLayout: false,
         movableColumns: false,
-      });
-  
+    });
+    
+    // CORRETO: configurar clique só uma vez
+    tabelaProjetos.on("rowClick", function(e, row){
+      const linhaSelecionada = row.getData();
+      desenharGraficosAuxiliares(linhaSelecionada);
+    });
+
       preencherFiltros();
   
       const tipoSalvo = localStorage.getItem('tipoGraficoSelecionado') || 'governador';
@@ -153,7 +191,9 @@ const coresSobrias = [
       // 🔥 Configura os filtros de SETOR e ÓRGÃO
       document.getElementById('filtro-setor').addEventListener('change', aplicarFiltrosTabela);
       document.getElementById('filtro-orgao').addEventListener('change', aplicarFiltrosTabela);
-  
+      
+      desenharGraficosAuxiliares();
+
     })
     .catch(error => {
       console.error('Erro ao carregar os dados:', error);
@@ -254,22 +294,104 @@ const coresSobrias = [
   }
 
   function aplicarFiltrosTabela() {
-    const setorSelecionado = document.getElementById('filtro-setor').value;
-    const orgaoSelecionado = document.getElementById('filtro-orgao').value;
+    const setorSelecionadoDropdown = document.getElementById('filtro-setor').value;
+    const orgaoSelecionadoDropdown = document.getElementById('filtro-orgao').value;
   
     tabelaProjetos.clearFilter();
   
-    if (setorSelecionado && orgaoSelecionado) {
+    if (setorSelecionadoDropdown && orgaoSelecionadoDropdown) {
       tabelaProjetos.setFilter([
-        { field: "SETORES", type: "=", value: setorSelecionado },
-        { field: "ÓRGÃO", type: "=", value: orgaoSelecionado }
+        { field: "SETORES", type: "=", value: setorSelecionadoDropdown },
+        { field: "ÓRGÃO", type: "=", value: orgaoSelecionadoDropdown }
       ]);
-    } else if (setorSelecionado) {
-      tabelaProjetos.setFilter("SETORES", "=", setorSelecionado);
-    } else if (orgaoSelecionado) {
-      tabelaProjetos.setFilter("ÓRGÃO", "=", orgaoSelecionado);
+    } else if (setorSelecionadoDropdown) {
+      tabelaProjetos.setFilter("SETORES", "=", setorSelecionadoDropdown);
+    } else if (orgaoSelecionadoDropdown) {
+      tabelaProjetos.setFilter("ÓRGÃO", "=", orgaoSelecionadoDropdown);
+    }
+  
+    // 🔥 Atualizar variável interna
+    if (setorSelecionadoDropdown) {
+      setorSelecionado = setorSelecionadoDropdown;
+    } else if (orgaoSelecionadoDropdown) {
+      setorSelecionado = orgaoSelecionadoDropdown;
+    } else {
+      setorSelecionado = null;
+    }
+  
+    // 🔥 Redesenhar gráfico para refletir a seleção
+    const tipoGrafico = document.getElementById('tipo-grafico').value;
+  
+    if (tipoGrafico === "governador") {
+      desenharGraficoGovernador();
+    } else if (tipoGrafico === "orgaos") {
+      desenharGraficoOrgaos();
+    } else if (tipoGrafico === "comparacao1") {
+      desenharGraficoComparacaoSetores();
     }
   }
+  
+  function desenharGraficosAuxiliares(dadosLinhaSelecionada = null) {
+    // Gráfico de Distribuição de Execução Física
+    const dfExecucao = dadosProjetos.map(row => ({
+      "EXECUÇÃO FÍSICA": parseFloat((row['EXECUÇÃO FÍSICA'] || "0").replace('%', '').replace(',', '.')) / 100
+    }));
+  
+    const valoresExecucao = dfExecucao.map(d => d["EXECUÇÃO FÍSICA"]);
+  
+    const bins = [0, 0.01, 0.25, 0.5, 0.75, 1.0];
+    const labels = ["0%", "≥25%", "≥50%", "≥75%", "100%"];
+    const categorias = valoresExecucao.map(v => {
+      for (let i = 0; i < bins.length - 1; i++) {
+        if (v >= bins[i] && v <= bins[i + 1]) return labels[i];
+      }
+      return "0%";
+    });
+    const contagem = {};
+    labels.forEach(label => contagem[label] = 0);
+    categorias.forEach(categoria => {
+      contagem[categoria]++;
+    });
+  
+    Plotly.newPlot('grafico-distribuicao', [{
+      x: Object.keys(contagem),
+      y: Object.values(contagem),
+      type: 'bar',
+      text: Object.values(contagem),
+      textposition: 'outside'
+    }], {
+      title: 'Distribuição de Execução Física',
+      width: 400,
+      height: 400,
+      margin: { t: 40, b: 40 }
+    });
+  
+    // Gráfico Comparativo Física vs Financeira (se tiver uma linha selecionada)
+    if (dadosLinhaSelecionada) {
+      const execFisica = parseFloat((dadosLinhaSelecionada['EXECUÇÃO FÍSICA'] || "0").replace('%', '').replace(',', '.'));
+      const execFinanceira = parseFloat((dadosLinhaSelecionada['EXECUÇÃO FINANCEIRA'] || "0").replace('%', '').replace(',', '.'));
+  
+      Plotly.newPlot('grafico-comparativo', [{
+        x: ["Execução Física", "Execução Financeira"],
+        y: [execFisica, execFinanceira],
+        type: 'bar',
+        text: [`${execFisica}%`, `${execFinanceira}%`],
+        textposition: 'outside'
+      }], {
+        title: 'Execução Física vs Financeira',
+        width: 400,
+        height: 400,
+        margin: { t: 40, b: 40 },
+        yaxis: {
+          range: [0, 100],      // 🔥 Isso fixa de 0 a 100!
+          ticksuffix: "%"       // 🔥 Isso coloca o símbolo % no eixo
+        }
+      });
+    } else {
+      // Caso nada selecionado: limpa o gráfico
+      document.getElementById('grafico-comparativo').innerHTML = '<div style="text-align:center;color:gray;">Selecione um projeto</div>';
+    }
+  } 
 
   inicializarDashboard({displayModeBar: false});
   

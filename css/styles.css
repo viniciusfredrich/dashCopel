@@ -1,0 +1,63 @@
+/* Reset básico */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Estilo do corpo */
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    padding: 20px;
+    color: #333;
+  }
+  
+  /* Cabeçalho */
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  header h1 {
+    font-size: 2rem;
+  }
+  
+  /* Container principal */
+  .dashboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  /* Estilo para o container de gráfico */
+  .grafico-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  /* Estilo para o container de tabela */
+  .tabela-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  /* Responsividade para telas maiores */
+  @media (min-width: 768px) {
+    /* Container principal */
+    .dashboard-container {
+        display: flex;
+        flex-direction: column; /* <<< Deixa gráfico em cima e tabela embaixo */
+        gap: 20px;
+    }
+    
+    .grafico-container,
+    .tabela-container {
+      flex: 1;
+    }
+  }
+  

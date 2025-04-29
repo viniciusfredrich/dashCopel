@@ -164,6 +164,6 @@
 #tabela-container {
   width: 100%;
   max-width: 100%;
-  height: 100%; /* ocupa 100% da altura do pai */
+  height: 99%; /* ocupa 100% da altura do pai */
 }
 * { font-family: 'Gotham', sans-serif !important; }

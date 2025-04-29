@@ -153,17 +153,17 @@
 /* Tabela logo abaixo dos gráficos, centralizada */
 #dashboard-tabela {
   width: 100%;
+  height: 46vh; /* controla o tamanho total da área da tabela */
   display: flex;
   justify-content: center;
   align-items: flex-start;
   box-sizing: border-box;
-  margin-top: -5vh;   /* <<< isso "puxa" a tabela para cima */
+  margin-top: -5vh; /* aproxima dos gráficos */
 }
 
 #tabela-container {
   width: 100%;
   max-width: 100%;
-  height: 90vh; /* controlado por altura percentual */
+  height: 100%; /* ocupa 100% da altura do pai */
 }
-
 * { font-family: 'Gotham', sans-serif !important; }

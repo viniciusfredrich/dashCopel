@@ -185,7 +185,7 @@ function drawExecucaoFisicaChart() {
     autosize: true,
     margin: { t: 40, b: 50, l: 20, r: 20 },
     xaxis: { automargin: true },
-    yaxis: { automargin: true }
+    yaxis: { range: [0, 60], automargin: true}
   });
 }
 
@@ -259,7 +259,7 @@ function init() {
     dadosSetores = Papa.parse(ts,{header:true,delimiter:';'}).data.filter(r=>r['SETORES']&&r['VALOR PREVISTO']);
     dadosProjetos = Papa.parse(tp,{header:true,delimiter:';'}).data.filter(r=>r['SETORES']);
 
-    tabelaProjetos = new Tabulator('#tabela-container',{data:dadosProjetos,layout:'fitColumns',pagination:false,height:'340px',
+    tabelaProjetos = new Tabulator('#tabela-container',{data:dadosProjetos,layout:'fitColumns',pagination:false,height:'100%',
       columns:[{title:'SETORES',field:'SETORES'},{title:'ÓRGÃO',field:'ÓRGÃO'},{title:'MUNICÍPIO',field:'MUNICÍPIO'},{title:'PROJETO',field:'PROJETO'},{title:'VALOR TOTAL DO PROJETO',field:'VALOR TOTAL DO PROJETO'},{title:'ORÇAMENTO DISPONIBILIZADO',field:'ORÇAMENTO DISPONIBILIZADO'},{title:'VALOR EMPENHADO',field:'VALOR EMPENHADO'},{title:'VALOR LIQUIDADO',field:'VALOR LIQUIDADO'},{title:'VALOR PAGO',field:'VALOR PAGO'},{title:'SALDO',field:'SALDO'},{title:'EXECUÇÃO FÍSICA',field:'EXECUÇÃO FÍSICA'},{title:'EXECUÇÃO FINANCEIRA',field:'EXECUÇÃO FINANCEIRA'},{title:'STATUS',field:'STATUS'},{title:'OBSERVAÇÃO',field:'OBSERVAÇÃO'}]
     });
 

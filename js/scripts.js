@@ -1,397 +1,287 @@
-const coresSobrias = [
-    "#1f77b4", // Azul sóbrio
-    "#ff7f0e", // Laranja elegante
-    "#2ca02c", // Verde moderado
-    "#d62728", // Vermelho escuro
-    "#9467bd", // Roxo suave
-    "#8c564b", // Marrom acinzentado
-    "#e377c2", // Rosa queimado
-    "#7f7f7f", // Cinza médio
-    "#bcbd22", // Verde oliva discreto
-    "#17becf"  // Azul claro elegante
-  ];
-  
-  let dadosSetores = [];
-  let dadosProjetos = [];
-  let tabelaProjetos = null;
-  let setorSelecionado = null;
-  
-  function aplicarTransparencia(cor) {
-    if (cor.startsWith('#')) {
-      const bigint = parseInt(cor.slice(1), 16);
-      const r = (bigint >> 16) & 255;
-      const g = (bigint >> 8) & 255;
-      const b = bigint & 255;
-      return `rgba(${r},${g},${b},0.4)`;
-    }
-    return cor;
-  }
-  
-  function desenharGraficoDonut(labels, valores, labelAtivo = null, titulo = "", colunaFiltro = "SETORES") {
-    const cores = labels.map((label, index) => {
-      const corBase = coresSobrias[index % coresSobrias.length];
-      if (labelAtivo && label !== labelAtivo) {
-        return aplicarTransparencia(corBase);
-      }
-      return corBase;
-    });
-  
-    Plotly.newPlot('grafico-container', [{
-      type: "pie",
-      labels: labels,
-      values: valores,
-      hole: 0.5,
-      marker: { colors: cores },
-      responsive: false,
-      displayModeBar: false,
-      hovertemplate: "%{label}: %{value}<extra></extra>",
-      texttemplate: "%{label}<br>%{value}",
-      textposition: "outside",
-    }], {
-      title: titulo,
-      width: 450,
-      height: 400,
-      showlegend: false,
-    });
-  
-    let graficoContainer = document.getElementById('grafico-container');
-    graficoContainer.on('plotly_click', function(data) {
-      if (data.points.length > 0) {
-        const labelClicado = data.points[0].label;
-    
-        if (setorSelecionado === labelClicado) {
-          setorSelecionado = null;
-          tabelaProjetos.clearFilter();
-          
-          // Resetar dropdowns
-          document.getElementById('filtro-setor').value = "";
-          document.getElementById('filtro-orgao').value = "";
-    
-          desenharGraficoDonut(labels, valores, null, titulo, colunaFiltro);
-        } else {
-          setorSelecionado = labelClicado;
-    
-          if (colunaFiltro === "SETORES") {
-            document.getElementById('filtro-setor').value = setorSelecionado;
-            document.getElementById('filtro-orgao').value = ""; // Limpa órgão
-          } else if (colunaFiltro === "ÓRGÃO") {
-            document.getElementById('filtro-orgao').value = setorSelecionado;
-            document.getElementById('filtro-setor').value = ""; // Limpa setor
-          }
-    
-          aplicarFiltrosTabela(); // Aplica o filtro visualmente
-          desenharGraficoDonut(labels, valores, setorSelecionado, titulo, colunaFiltro);
-        }
-      }
-    });
-  }
-  
-  function desenharGraficoGovernador() {
-    const labels = dadosSetores.map(row => row['SETORES']);
-    const valores = dadosSetores.map(row => parseFloat(row['VALOR PREVISTO']));
-    desenharGraficoDonut(labels, valores, null, "Valores definidos pelo Governador", "SETORES");
+// scripts.js
+// Dashboard interativo: Gráfico Principal, Execução Física e Comparativo Físico x Financeiro
 
-  }
-  
-  function desenharGraficoOrgaos() {
-    // Agrupar VALOR TOTAL DO PROJETO por ÓRGÃO
-    const agrupado = {};
-  
-    dadosProjetos.forEach(row => {
-      const orgao = row['ÓRGÃO'];
-      const valor = parseFloat(row['VALOR TOTAL DO PROJETO'].replace(/\./g, '').replace(',', '.')) || 0;
-      if (!agrupado[orgao]) agrupado[orgao] = 0;
-      agrupado[orgao] += valor;
-    });
-  
-    const labels = Object.keys(agrupado);
-    const valores = Object.values(agrupado);
-  
-    desenharGraficoDonut(labels, valores, null, "Valores planejados pelos Órgãos", "ÓRGÃO");
-  }
-  
-  function inicializarDashboard() {
-    Promise.all([
-      fetch('data/setores_gov.csv').then(res => res.text()),
-      fetch('data/detalhado.csv').then(res => res.text())
-    ])
-    .then(([textoSetores, textoProjetos]) => {
-      const parsedSetores = Papa.parse(textoSetores, { header: true, delimiter: ";" });
-      dadosSetores = parsedSetores.data.filter(row => row['SETORES'] && row['VALOR PREVISTO']);
-    
-      const parsedProjetos = Papa.parse(textoProjetos, { header: true, delimiter: ";" });
-      dadosProjetos = parsedProjetos.data.filter(row => row['SETORES']);
-    
-      const colunas = [
-        { title: 'SETORES', field: 'SETORES' },
-        { title: 'ÓRGÃO', field: 'ÓRGÃO' },
-        { title: 'MUNICÍPIO', field: 'MUNICÍPIO' },
-        { title: 'PROJETO', field: 'PROJETO' },
-        { title: 'VALOR TOTAL DO PROJETO', field: 'VALOR TOTAL DO PROJETO' },
-        { title: 'ORÇAMENTO DISPONIBILIZADO', field: 'ORÇAMENTO DISPONIBILIZADO' },
-        { title: 'VALOR EMPENHADO', field: 'VALOR EMPENHADO' },
-        { title: 'VALOR LIQUIDADO', field: 'VALOR LIQUIDADO' },
-        { title: 'VALOR PAGO', field: 'VALOR PAGO' },
-        { title: 'SALDO', field: 'SALDO' },
-        { title: 'EXECUÇÃO FÍSICA', field: 'EXECUÇÃO FÍSICA' },
-        { title: 'EXECUÇÃO FINANCEIRA', field: 'EXECUÇÃO FINANCEIRA' },
-        { title: 'STATUS', field: 'STATUS' },
-        { title: 'OBSERVAÇÃO', field: 'OBSERVAÇÃO' }
-      ];
-            
+// Cores principais
+const CORES = ['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b','#e377c2','#7f7f7f','#bcbd22','#17becf'];
 
-      tabelaProjetos = new Tabulator("#tabela-container", {
-        data: dadosProjetos,
-        layout: "fitColumns",
-        pagination: false,
-        columns: colunas,
-        height: "340px",
-        responsiveLayout: false,
-        movableColumns: false,
-    });
-    
-    // CORRETO: configurar clique só uma vez
-    tabelaProjetos.on("rowClick", function(e, row){
-      const linhaSelecionada = row.getData();
-      desenharGraficosAuxiliares(linhaSelecionada);
+// Dados e estados globais\let dadosSetores = [];
+let dadosProjetos = [];
+let tabelaProjetos = null;
+let ativoFiltro = null;       // Label ativo para filtrar (setor ou órgão)
+let linhaSelecionada = null;   // Linha selecionada na tabela
+
+// Aplica transparência a cor em hex
+function aplicarTransparencia(hex) {
+  const bigint = parseInt(hex.replace('#',''), 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r},${g},${b},0.4)`;
+}
+
+// Desenha o gráfico principal (donut ou barras comparativas)
+function drawMainChart() {
+  const tipo = document.getElementById('tipo-grafico').value;
+  const container = 'grafico-principal';
+  document.getElementById(container).innerHTML = '';
+
+  if (tipo === 'comparacao1') {
+    const gov = {}, plan = {}, pago = {};
+    dadosSetores.forEach(r => gov[r['SETORES']] = parseFloat(r['VALOR PREVISTO']));
+    dadosProjetos.forEach(r => {
+      const s = r['SETORES'];
+      const tv = parseFloat((r['VALOR TOTAL DO PROJETO'] || '0').replace(/\./g, '').replace(',', '.')) || 0;
+      const tp = parseFloat((r['VALOR PAGO'] || '0').replace(/\./g, '').replace(',', '.')) || 0;
+      plan[s] = (plan[s] || 0) + tv;
+      pago[s] = (pago[s] || 0) + tp;
     });
 
-      preencherFiltros();
-  
-      const tipoSalvo = localStorage.getItem('tipoGraficoSelecionado') || 'governador';
-      document.getElementById('tipo-grafico').value = tipoSalvo;
-  
-      // 🔥 Só UM lugar para desenhar o gráfico inicial
-      if (tipoSalvo === "governador") {
-        desenharGraficoGovernador();
-      } else if (tipoSalvo === "orgaos") {
-        desenharGraficoOrgaos();
-      } else if (tipoSalvo === "comparacao1") {
-        desenharGraficoComparacaoSetores();
-      } else {
-        desenharGraficoGovernador(); // Default
-      }
-  
-      // 🔥 Configura o evento para trocar de gráfico
-      document.getElementById('tipo-grafico').addEventListener('change', function() {
-        const tipo = this.value;
-        localStorage.setItem('tipoGraficoSelecionado', tipo);
-  
-        if (tipo === "governador") {
-          desenharGraficoGovernador();
-        } else if (tipo === "orgaos") {
-          desenharGraficoOrgaos();
-        } else if (tipo === "comparacao1") {
-          desenharGraficoComparacaoSetores();
-        } else {
-          desenharGraficoGovernador();
-        }
-      });
-  
-      // 🔥 Configura os filtros de SETOR e ÓRGÃO
-      document.getElementById('filtro-setor').addEventListener('change', aplicarFiltrosTabela);
-      document.getElementById('filtro-orgao').addEventListener('change', aplicarFiltrosTabela);
-      
-      desenharGraficosAuxiliares();
+    const labels = [...new Set([...Object.keys(gov), ...Object.keys(plan), ...Object.keys(pago)])];
+    const coresBase = labels.map((_, i) => CORES[i % CORES.length]);
+    const colors = coresBase.map((c, i) => ativoFiltro && labels[i] !== ativoFiltro ? aplicarTransparencia(c) : c);
 
-    })
-    .catch(error => {
-      console.error('Erro ao carregar os dados:', error);
-    });
-  }
-
-  function desenharGraficoComparacaoSetores() {
-    // Preparar dados
-  
-    // 1. Valor previsto pelo Governador
-    const dadosGovernador = {};
-    dadosSetores.forEach(row => {
-      const setor = row['SETORES'];
-      const valor = parseFloat(row['VALOR PREVISTO'].replace(/\./g, '').replace(',', '.')) || 0;
-      dadosGovernador[setor] = valor;
-    });
-  
-    // 2. Valor planejado pelos Órgãos (somado por SETORES)
-    const dadosPlanejado = {};
-    dadosProjetos.forEach(row => {
-      const setor = row['SETORES'];
-      const valor = parseFloat(row['VALOR TOTAL DO PROJETO'].replace(/\./g, '').replace(',', '.')) || 0;
-      if (!dadosPlanejado[setor]) dadosPlanejado[setor] = 0;
-      dadosPlanejado[setor] += valor;
-    });
-  
-    // 3. Valor pago pelos Órgãos (somado por SETORES)
-    const dadosPago = {};
-    dadosProjetos.forEach(row => {
-      const setor = row['SETORES'];
-      const valor = parseFloat(row['VALOR PAGO'].replace(/\./g, '').replace(',', '.')) || 0;
-      if (!dadosPago[setor]) dadosPago[setor] = 0;
-      dadosPago[setor] += valor;
-    });
-  
-    // 4. Unificar os setores existentes
-    const setores = [...new Set([
-      ...Object.keys(dadosGovernador),
-      ...Object.keys(dadosPlanejado),
-      ...Object.keys(dadosPago),
-    ])];
-  
-    // 5. Montar as barras
-    const traceGovernador = {
-      x: setores,
-      y: setores.map(setor => dadosGovernador[setor] || 0),
-      name: "Valor Previsto Governador",
-      type: "bar"
-    };
-  
-    const tracePlanejado = {
-      x: setores,
-      y: setores.map(setor => dadosPlanejado[setor] || 0),
-      name: "Valor Planejado Órgãos",
-      type: "bar"
-    };
-  
-    const tracePago = {
-      x: setores,
-      y: setores.map(setor => dadosPago[setor] || 0),
-      name: "Valor Gasto Órgãos",
-      type: "bar"
-    };
-  
-    // 6. Plotar
-    Plotly.newPlot('grafico-container', [traceGovernador, tracePlanejado, tracePago], {
-      barmode: 'group',
-      title: "Comparação Governador x Órgãos",
-      width: 800,
-      height: 400,
-      margin: { t: 40, b: 100, l: 60, r: 20 },
-      xaxis: {
-        tickangle: -45
-      }
-    });
-  }
-
-  function preencherFiltros() {
-    const selectSetor = document.getElementById('filtro-setor');
-    const selectOrgao = document.getElementById('filtro-orgao');
-  
-    const setoresUnicos = [...new Set(dadosProjetos.map(row => row['SETORES']))].sort();
-    const orgaosUnicos = [...new Set(dadosProjetos.map(row => row['ÓRGÃO']))].sort();
-  
-    setoresUnicos.forEach(setor => {
-      const option = document.createElement('option');
-      option.value = setor;
-      option.textContent = setor;
-      selectSetor.appendChild(option);
-    });
-  
-    orgaosUnicos.forEach(orgao => {
-      const option = document.createElement('option');
-      option.value = orgao;
-      option.textContent = orgao;
-      selectOrgao.appendChild(option);
-    });
-  }
-
-  function aplicarFiltrosTabela() {
-    const setorSelecionadoDropdown = document.getElementById('filtro-setor').value;
-    const orgaoSelecionadoDropdown = document.getElementById('filtro-orgao').value;
-  
-    tabelaProjetos.clearFilter();
-  
-    if (setorSelecionadoDropdown && orgaoSelecionadoDropdown) {
-      tabelaProjetos.setFilter([
-        { field: "SETORES", type: "=", value: setorSelecionadoDropdown },
-        { field: "ÓRGÃO", type: "=", value: orgaoSelecionadoDropdown }
-      ]);
-    } else if (setorSelecionadoDropdown) {
-      tabelaProjetos.setFilter("SETORES", "=", setorSelecionadoDropdown);
-    } else if (orgaoSelecionadoDropdown) {
-      tabelaProjetos.setFilter("ÓRGÃO", "=", orgaoSelecionadoDropdown);
-    }
-  
-    // 🔥 Atualizar variável interna
-    if (setorSelecionadoDropdown) {
-      setorSelecionado = setorSelecionadoDropdown;
-    } else if (orgaoSelecionadoDropdown) {
-      setorSelecionado = orgaoSelecionadoDropdown;
-    } else {
-      setorSelecionado = null;
-    }
-  
-    // 🔥 Redesenhar gráfico para refletir a seleção
-    const tipoGrafico = document.getElementById('tipo-grafico').value;
-  
-    if (tipoGrafico === "governador") {
-      desenharGraficoGovernador();
-    } else if (tipoGrafico === "orgaos") {
-      desenharGraficoOrgaos();
-    } else if (tipoGrafico === "comparacao1") {
-      desenharGraficoComparacaoSetores();
-    }
-  }
-  
-  function desenharGraficosAuxiliares(dadosLinhaSelecionada = null) {
-    // Gráfico de Distribuição de Execução Física
-    const dfExecucao = dadosProjetos.map(row => ({
-      "EXECUÇÃO FÍSICA": parseFloat((row['EXECUÇÃO FÍSICA'] || "0").replace('%', '').replace(',', '.')) / 100
-    }));
-  
-    const valoresExecucao = dfExecucao.map(d => d["EXECUÇÃO FÍSICA"]);
-  
-    const bins = [0, 0.01, 0.25, 0.5, 0.75, 1.0];
-    const labels = ["0%", "≥25%", "≥50%", "≥75%", "100%"];
-    const categorias = valoresExecucao.map(v => {
-      for (let i = 0; i < bins.length - 1; i++) {
-        if (v >= bins[i] && v <= bins[i + 1]) return labels[i];
-      }
-      return "0%";
-    });
-    const contagem = {};
-    labels.forEach(label => contagem[label] = 0);
-    categorias.forEach(categoria => {
-      contagem[categoria]++;
-    });
-  
-    Plotly.newPlot('grafico-distribuicao', [{
-      x: Object.keys(contagem),
-      y: Object.values(contagem),
-      type: 'bar',
-      text: Object.values(contagem),
-      textposition: 'outside'
-    }], {
-      title: 'Distribuição de Execução Física',
-      width: 400,
-      height: 400,
-      margin: { t: 40, b: 40 }
-    });
-  
-    // Gráfico Comparativo Física vs Financeira (se tiver uma linha selecionada)
-    if (dadosLinhaSelecionada) {
-      const execFisica = parseFloat((dadosLinhaSelecionada['EXECUÇÃO FÍSICA'] || "0").replace('%', '').replace(',', '.'));
-      const execFinanceira = parseFloat((dadosLinhaSelecionada['EXECUÇÃO FINANCEIRA'] || "0").replace('%', '').replace(',', '.'));
-  
-      Plotly.newPlot('grafico-comparativo', [{
-        x: ["Execução Física", "Execução Financeira"],
-        y: [execFisica, execFinanceira],
+    const traces = [
+      {
+        x: labels,
+        y: labels.map(s => gov[s] || 0),
+        name: 'Previsto Governador',
         type: 'bar',
-        text: [`${execFisica}%`, `${execFinanceira}%`],
-        textposition: 'outside'
-      }], {
-        title: 'Execução Física vs Financeira',
-        width: 400,
-        height: 400,
-        margin: { t: 40, b: 40 },
-        yaxis: {
-          range: [0, 100],      // 🔥 Isso fixa de 0 a 100!
-          ticksuffix: "%"       // 🔥 Isso coloca o símbolo % no eixo
-        }
-      });
-    } else {
-      // Caso nada selecionado: limpa o gráfico
-      document.getElementById('grafico-comparativo').innerHTML = '<div style="text-align:center;color:gray;">Selecione um projeto</div>';
-    }
-  } 
+        marker: { color: colors }
+      },
+      {
+        x: labels,
+        y: labels.map(s => plan[s] || 0),
+        name: 'Planejado Órgãos',
+        type: 'bar',
+        marker: { color: colors }
+      },
+      {
+        x: labels,
+        y: labels.map(s => pago[s] || 0),
+        name: 'Pago Órgãos',
+        type: 'bar',
+        marker: { color: colors }
+      }
+    ];
 
-  inicializarDashboard({displayModeBar: false});
-  
+    const layoutBar = {
+      barmode: 'group',
+      title: 'Comparação Governador x Órgãos',
+      autosize: true,
+      responsive: true,
+      margin: { t: 40, b: 50, l: 20, r: 20 },
+      xaxis: { automargin: true },
+      yaxis: { automargin: true }
+    };
+
+    Plotly.newPlot(container, traces, layoutBar).then(() => attachMainClick(labels));
+  } else {
+    const mapFonte = tipo === 'orgaos'
+      ? dadosProjetos.reduce((acc, r) => {
+        const org = r['ÓRGÃO'];
+        const v = parseFloat((r['VALOR TOTAL DO PROJETO'] || '0').replace(/\./g, '').replace(',', '.')) || 0;
+        acc[org] = (acc[org] || 0) + v;
+        return acc;
+      }, {})
+      : dadosSetores.reduce((acc, r) => {
+        acc[r['SETORES']] = parseFloat(r['VALOR PREVISTO']);
+        return acc;
+      }, {});
+
+    const labels = Object.keys(mapFonte);
+    const values = Object.values(mapFonte);
+    const cores = labels.map((lab, i) => {
+      const c = CORES[i % CORES.length];
+      return ativoFiltro && lab !== ativoFiltro ? aplicarTransparencia(c) : c;
+    });
+
+    const title = tipo === 'orgaos'
+      ? 'Valores planejados pelos Órgãos'
+      : 'Valores definidos pelo Governador';
+
+    const layoutPie = {
+      title: title,
+      responsive: true,
+      showlegend: false,
+      margin: { t: 35, b: 40, l: 10, r: 10 }
+    };
+
+    const pie = {
+      type: 'pie',
+      hole: 0.5,
+      labels,
+      values,
+      marker: { colors: cores },
+      hovertemplate: '%{label}: %{value}<extra></extra>',
+      texttemplate: '%{label}<br>%{value}',
+      textposition: 'outside',
+      domain: {
+        x: [0.1, 0.9], // ocupa 80% da largura do container
+        y: [0.1, 0.9]  // ocupa 80% da altura do container
+      }
+    };
+
+    Plotly.newPlot(container, [pie], layoutPie).then(() => attachMainClick(labels));
+  }
+}
+
+// Anexa evento de toggle ao gráfico principal
+function attachMainClick(labels) {
+  const gd = document.getElementById('grafico-principal');
+  if (gd.removeAllListeners) gd.removeAllListeners('plotly_click');
+  gd.on('plotly_click', data => {
+    if (!data.points.length) return;
+    const lab = data.points[0].label;
+    if (ativoFiltro === lab) {
+      ativoFiltro = null;
+      document.getElementById('filtro-setor').value = '';
+      document.getElementById('filtro-orgao').value = '';
+      tabelaProjetos.clearFilter();
+      linhaSelecionada = null;
+    } else {
+      ativoFiltro = lab;
+      const tipo = document.getElementById('tipo-grafico').value;
+      if (tipo === 'orgaos') document.getElementById('filtro-orgao').value = lab;
+      else document.getElementById('filtro-setor').value = lab;
+      applyFilters();
+    }
+    drawMainChart();
+    drawAuxCharts();
+  });
+}
+
+function drawExecucaoFisicaChart() {
+  let dados = dadosProjetos;
+
+  const s = document.getElementById('filtro-setor').value;
+  const o = document.getElementById('filtro-orgao').value;
+
+  if (s) dados = dados.filter(r => r['SETORES'] === s);
+  else if (o) dados = dados.filter(r => r['ÓRGÃO'] === o);
+
+  const exec = dados.map(r => parseFloat((r['EXECUÇÃO FÍSICA'] || '0').replace('%', '').replace(',', '.')) / 100);
+
+  const labels = ['0%', 'Até 25%', 'Até 50%', 'Até 75%', 'Até 100%'];
+  const cont = Object.fromEntries(labels.map(l => [l, 0]));
+
+  exec.forEach(v => {
+    if (v === 0) cont['0%']++;
+    else if (v <= 0.25) cont['Até 25%']++;
+    else if (v <= 0.5) cont['Até 50%']++;
+    else if (v <= 0.75) cont['Até 75%']++;
+    else cont['Até 100%']++;
+  });
+
+  Plotly.newPlot('grafico-distribuicao', [{
+    x: labels,
+    y: labels.map(l => cont[l]),
+    type: 'bar',
+    text: labels.map(l => cont[l]),
+    textposition: 'outside',
+    marker: { color: '#1f77b4' }
+  }], {
+    title: `Distribuição Física (${dados.length} itens)`,
+    responsive: true,
+    autosize: true,
+    margin: { t: 40, b: 50, l: 20, r: 20 },
+    xaxis: { automargin: true },
+    yaxis: { automargin: true }
+  });
+}
+
+// Desenha Comparativo Física vs Financeira
+function drawComparativoFisicoFinanceiroChart() {
+  let layout = {
+    title: 'Física vs Financeira',
+    responsive: true,
+    autosize: true,
+    margin: { t: 40, b: 50, l: 20, r: 20 },
+    yaxis: { range: [0, 110], ticksuffix: '%', automargin: true },
+    xaxis: { automargin: true }
+  };
+
+  if (!linhaSelecionada) {
+    Plotly.newPlot('grafico-comparativo', [{
+      type: 'bar',
+      x: ['Física', 'Financeira'],
+      y: [0, 0],
+      text: ['Selecione um projeto', 'Selecione um projeto'],
+      textposition: 'auto',
+      marker: { color: ['#ccc', '#ccc'] }
+    }], layout);
+    return;
+  }
+
+  const f = parseFloat((linhaSelecionada['EXECUÇÃO FÍSICA'] || '0').replace('%', '').replace(',', '.'));
+  const fi = parseFloat((linhaSelecionada['EXECUÇÃO FINANCEIRA'] || '0').replace('%', '').replace(',', '.'));
+
+  Plotly.newPlot('grafico-comparativo', [{
+    x: ['Física', 'Financeira'],
+    y: [f, fi],
+    type: 'bar',
+    text: [`${f}%`, `${fi}%`],
+    textposition: 'outside',
+    marker: { color: ['#2ca02c', '#d62728'] }
+  }], layout);
+}
+
+// Chama ambos os gráficos auxiliares
+function drawAuxCharts() {
+  drawExecucaoFisicaChart();
+  drawComparativoFisicoFinanceiroChart();
+}
+
+// Aplica filtros pelos dropdowns e redesenha
+function applyFilters() {
+  const s = document.getElementById('filtro-setor').value;
+  const o = document.getElementById('filtro-orgao').value;
+  tabelaProjetos.clearFilter();
+  if (s && o) tabelaProjetos.setFilter([{ field:'SETORES', type:'=', value:s }, { field:'ÓRGÃO', type:'=', value:o }]);
+  else if (s) tabelaProjetos.setFilter('SETORES','=',s);
+  else if (o) tabelaProjetos.setFilter('ÓRGÃO','=',o);
+  ativoFiltro = s || o || null;
+  drawMainChart();
+  drawAuxCharts();
+}
+
+// Preenche os dropdowns de filtro
+function fillDropdowns() {
+  const fs = document.getElementById('filtro-setor');
+  const fo = document.getElementById('filtro-orgao');
+  new Set(dadosProjetos.map(r=>r['SETORES'])).forEach(s=>fs.appendChild(new Option(s,s)));
+  new Set(dadosProjetos.map(r=>r['ÓRGÃO'])).forEach(o=>fo.appendChild(new Option(o,o)));
+}
+
+// Inicializa o dashboard
+function init() {
+  Promise.all([fetch('data/setores_gov.csv').then(r=>r.text()),fetch('data/detalhado.csv').then(r=>r.text())])
+  .then(([ts,tp]) => {
+    dadosSetores = Papa.parse(ts,{header:true,delimiter:';'}).data.filter(r=>r['SETORES']&&r['VALOR PREVISTO']);
+    dadosProjetos = Papa.parse(tp,{header:true,delimiter:';'}).data.filter(r=>r['SETORES']);
+
+    tabelaProjetos = new Tabulator('#tabela-container',{data:dadosProjetos,layout:'fitColumns',pagination:false,height:'340px',
+      columns:[{title:'SETORES',field:'SETORES'},{title:'ÓRGÃO',field:'ÓRGÃO'},{title:'MUNICÍPIO',field:'MUNICÍPIO'},{title:'PROJETO',field:'PROJETO'},{title:'VALOR TOTAL DO PROJETO',field:'VALOR TOTAL DO PROJETO'},{title:'ORÇAMENTO DISPONIBILIZADO',field:'ORÇAMENTO DISPONIBILIZADO'},{title:'VALOR EMPENHADO',field:'VALOR EMPENHADO'},{title:'VALOR LIQUIDADO',field:'VALOR LIQUIDADO'},{title:'VALOR PAGO',field:'VALOR PAGO'},{title:'SALDO',field:'SALDO'},{title:'EXECUÇÃO FÍSICA',field:'EXECUÇÃO FÍSICA'},{title:'EXECUÇÃO FINANCEIRA',field:'EXECUÇÃO FINANCEIRA'},{title:'STATUS',field:'STATUS'},{title:'OBSERVAÇÃO',field:'OBSERVAÇÃO'}]
+    });
+
+    tabelaProjetos.on('rowClick',(_,row) => {
+      const data = row.getData();
+      if (JSON.stringify(linhaSelecionada) === JSON.stringify(data)) {
+        linhaSelecionada = null;
+      } else {
+        linhaSelecionada = data;
+      }
+      drawAuxCharts();
+    });
+
+    fillDropdowns();
+    document.getElementById('tipo-grafico').addEventListener('change',() => {document.getElementById('filtro-setor').value='';document.getElementById('filtro-orgao').value='';ativoFiltro=null;tabelaProjetos.clearFilter();drawMainChart();drawAuxCharts();});
+    document.getElementById('filtro-setor').addEventListener('change',applyFilters);
+    document.getElementById('filtro-orgao').addEventListener('change',applyFilters);
+
+    drawMainChart();
+    drawAuxCharts();
+  }).catch(console.error);
+}
+
+// Inicia tudo após carregamento do DOM
+document.addEventListener('DOMContentLoaded', init);

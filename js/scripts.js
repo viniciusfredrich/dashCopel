@@ -121,7 +121,8 @@ function drawMainChart() {
       }
     };
 
-    Plotly.newPlot(container, [pie], layoutPie).then(() => attachMainClick(labels));
+    Plotly.newPlot(container, [pie], layoutPie, {    displayModeBar: false,
+      displaylogo: false,}).then(() => attachMainClick(labels));
   }
 }
 
@@ -186,7 +187,8 @@ function drawExecucaoFisicaChart() {
     margin: { t: 40, b: 50, l: 20, r: 20 },
     xaxis: { automargin: true },
     yaxis: { range: [0, 60], automargin: true}
-  });
+  },{    displayModeBar: false,
+    displaylogo: false,});
 }
 
 // Desenha Comparativo Física vs Financeira
@@ -208,7 +210,8 @@ function drawComparativoFisicoFinanceiroChart() {
       text: ['Selecione um projeto', 'Selecione um projeto'],
       textposition: 'auto',
       marker: { color: ['#ccc', '#ccc'] }
-    }], layout);
+    }], layout,{    displayModeBar: false,
+      displaylogo: false,});
     return;
   }
 
@@ -222,7 +225,8 @@ function drawComparativoFisicoFinanceiroChart() {
     text: [`${f}%`, `${fi}%`],
     textposition: 'outside',
     marker: { color: ['#2ca02c', '#d62728'] }
-  }], layout);
+  }], layout, {    displayModeBar: false,
+    displaylogo: false});
 }
 
 // Chama ambos os gráficos auxiliares

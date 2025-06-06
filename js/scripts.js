@@ -1,15 +1,27 @@
 // scripts.js
 // Dashboard interativo: Gráfico Principal, Execução Física e Comparativo Físico x Financeiro
 
+
+
 function mostrarAbaDropdown(id) {
   document.querySelectorAll('.aba').forEach(aba => aba.classList.remove('ativa'));
   const alvo = document.getElementById(id);
   if (alvo) {
     alvo.classList.add('ativa');
 
+    // Esconde filtros do COPEL se não for a aba copel
+    const filtrosCopel = document.getElementById('filtros-copel');
+    filtrosCopel.style.display = id === 'aba-copel' ? 'flex' : 'none';
+
     if (id === 'aba-copel' && tabelaProjetos) {
+      setTimeout(() => tabelaProjetos.redraw(true), 50);
+    }
+
+    // 🔧 Força redimensionamento do gráfico histórico ao mostrar a aba
+    if (id === 'aba-historico') {
+      // Aguarda a aba estar visível e depois redesenha o gráfico completamente
       setTimeout(() => {
-        tabelaProjetos.redraw(true); // Força redesenho do layout da tabela
+        plotarGraficoHistorico(dadosHistoricoGlobal);  // re-renderiza com os dados
       }, 50);
     }
   }
@@ -35,6 +47,10 @@ let dadosProjetos = [];
 let tabelaProjetos = null;
 let ativoFiltro = null;       // Label ativo para filtrar (setor ou órgão)
 let linhaSelecionada = null;   // Linha selecionada na tabela
+let dadosHistoricoGlobal = [];
+let dadosSaidasConta = [];
+let dadosFluxoMensal = [];
+
 
 // Aplica transparência a cor em hex
 function aplicarTransparencia(hex) {
@@ -227,7 +243,12 @@ function attachMainClick(labels) {
 let execFisicaRenderizado = false;
 
 function drawExecucaoFisicaChart() {
-  let dados = dadosProjetos;
+  let dados = tabelaProjetos?.getData?.();
+
+  if (!Array.isArray(dados) || dados.length === 0) {
+    console.warn("⚠️ Nenhum dado disponível para o gráfico de execução física.");
+    return;
+  }
 
   const s = document.getElementById('filtro-setor').value;
   const o = document.getElementById('filtro-orgao').value;
@@ -235,7 +256,7 @@ function drawExecucaoFisicaChart() {
   if (s) dados = dados.filter(r => r['SETORES'] === s);
   if (o) dados = dados.filter(r => r['ÓRGÃO'] === o);
 
-  const exec = dados.map(r => parseFloat((r['EXECUÇÃO FÍSICA'] || '0').replace('%', '').replace(',', '.')) / 100);
+  const exec = dados.map(r => Number(r['EXECUÇÃO FÍSICA']) / 100);
 
   const labels = ['0%', 'Até 25%', 'Até 50%', 'Até 75%', 'Até 100%'];
   const cont = Object.fromEntries(labels.map(l => [l, 0]));
@@ -309,8 +330,8 @@ function drawComparativoFisicoFinanceiroChart() {
   let color = ['#CC9C33', '#5EC0B1'];
 
   if (linhaSelecionada) {
-    f = parseFloat((linhaSelecionada['EXECUÇÃO FÍSICA'] || '0').replace('%', '').replace(',', '.'));
-    fi = parseFloat((linhaSelecionada['EXECUÇÃO FINANCEIRA'] || '0').replace('%', '').replace(',', '.'));
+    f = Number(linhaSelecionada['EXECUÇÃO FÍSICA']);
+    fi = Number(linhaSelecionada['EXECUÇÃO FINANCEIRA']);
     text = [`${f}%`, `${fi}%`];
     color = ['#CC9C33', '#5EC0B1'];
   }
@@ -394,46 +415,401 @@ function atualizarDropdownOrgaos(setorSelecionado) {
   orgaosUnicos.forEach(o => fo.appendChild(new Option(o, o)));
 }
 
-// Inicializa o dashboard
-function init() {
-  Promise.all([fetch('data/setores_gov.csv').then(r=>r.text()),fetch('data/detalhado.csv').then(r=>r.text())])
-  .then(([ts,tp]) => {
-    dadosSetores = Papa.parse(ts,{header:true,delimiter:';'}).data.filter(r=>r['SETORES']&&r['VALOR PREVISTO']);
-    dadosProjetos = Papa.parse(tp,{header:true,delimiter:';'}).data.filter(r=>r['SETORES']);
+function renderTabelaHistorico(dados) {
+  // destrói instância anterior, se existir
+  const inst = Tabulator.findTable('#tabela-historico')[0];
+  if (inst) inst.destroy();
 
-    tabelaProjetos = new Tabulator('#tabela-container',{data:dadosProjetos,layout:'fitColumns',pagination:false,height:'100%',
-      columns:[{title:'SETORES',field:'SETORES'},{title:'ÓRGÃO',field:'ÓRGÃO'},{title:'MUNICÍPIO',field:'MUNICÍPIO'},{title:'PROJETO',field:'PROJETO'},{title:'VALOR TOTAL DO PROJETO',field:'VALOR TOTAL DO PROJETO'},{title:'ORÇAMENTO DISPONIBILIZADO',field:'ORÇAMENTO DISPONIBILIZADO'},{title:'VALOR EMPENHADO',field:'VALOR EMPENHADO'},{title:'VALOR LIQUIDADO',field:'VALOR LIQUIDADO'},{title:'VALOR PAGO',field:'VALOR PAGO'},{title:'SALDO',field:'SALDO'},{title:'EXECUÇÃO FÍSICA',field:'EXECUÇÃO FÍSICA'},{title:'EXECUÇÃO FINANCEIRA',field:'EXECUÇÃO FINANCEIRA'},{title:'STATUS',field:'STATUS'},{title:'OBSERVAÇÃO',field:'OBSERVAÇÃO'}]
+  new Tabulator('#tabela-historico', {
+    data: dados,            // seu array completo
+    layout: 'fitColumns',   // ajuste automático das colunas
+    pagination: false,      // sem paginação
+
+    // preenche 100% do wrapper (#dashboard-historico-tabela)
+    height: '80%',
+
+    // === DESLIGANDO RENDERIZAÇÃO PROGRESSIVA ===
+    virtualDom: false,        // renderiza todas as linhas de uma vez
+    progressiveRender: false, // desativa o “progressive render”
+
+    // wrap de header e conteúdo
+    headerWordWrap: true,
+    cellVertAlign: 'top',
+
+    columns: [
+      { title: 'Órgão',      field: 'Órgão' },
+      { title: 'Vinculada',  field: 'Vinculada' },
+      { title: 'Data',       field: 'Data' },
+      { title: 'Fonte',      field: 'Fonte' },
+      { title: 'Descrição',  field: 'Descrição' },
+      { title: 'Função',     field: 'Função' },
+      { title: 'Valor Repassado', field: 'Valor Repassado', hozAlign:'right' },
+      { title: 'No Plano?',  field: 'Despesa presente no plano de aplicação' }
+    ]
+  });
+}
+
+function plotarGraficoHistorico(dados) {
+  const datas = [];
+  const saldoFinal = [];
+  const repassesAcumulados = [];
+
+  dados.forEach(linha => {
+    datas.push(linha['DATA']);
+    saldoFinal.push(parseFloat(linha['SALDO FINAL'] || 0) / 1e9);
+    repassesAcumulados.push(parseFloat(linha['TOTAL REPASSE'] || 0) / 1e9);
+  });
+
+  const formatarValor = v => v >= 1e9
+    ? `R$ ${(v/1e9).toFixed(2)} bi`
+    : `R$ ${(v/1e6).toFixed(0)} mi`;
+
+  const traceSaldo = {
+    x: datas,
+    y: saldoFinal,
+    name: 'Saldo Final',
+    type: 'scatter',
+    mode: 'lines+markers',
+    line: { color: '#3E8ACC', width: 3 },
+    hovertemplate: '%{x}<br>Saldo: %{customdata}<extra></extra>',
+    customdata: saldoFinal.map(v => formatarValor(v*1e9))
+  };
+
+  const traceRepasse = {
+    x: datas,
+    y: repassesAcumulados,
+    name: 'Repasses Acumulados',
+    type: 'scatter',
+    mode: 'lines+markers',
+    line: { color: '#CC9C33', width: 3 },
+    hovertemplate: '%{x}<br>Repasse: %{customdata}<extra></extra>',
+    customdata: repassesAcumulados.map(v => formatarValor(v*1e9))
+  };
+
+  const layout = {
+    title: 'Evolução do Saldo e Repasses',
+    autosize: true,
+    hovermode: 'x unified',    // <— agrupa hover em um único label
+    xaxis: {
+      automargin: true,
+      showspikes: true,        // linha vertical no ponto
+      spikemode: 'across',     // spike atravessa todo o gráfico
+      spikecolor: '#999',
+      spikesnap: 'cursor',
+    },
+    yaxis: {
+      automargin: true,
+      tickvals: [0,0.5,1,1.5,2,2.5,3,3.5],
+      ticktext: ['R$ 0','R$ 0,5 bi','R$ 1 bi','R$ 1,5 bi','R$ 2 bi','R$ 2,5 bi','R$ 3 bi','R$ 3,5 bi'],
+    },
+    margin: { t: 50, b: 50, l: 60, r: 30 },
+    legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: -0.2 }
+  };
+
+  const config = {
+    responsive: true,
+    displayModeBar: false,
+    displaylogo: false
+  };
+
+  const el = document.getElementById('grafico-historico');
+  Plotly.react(el, [traceSaldo, traceRepasse], layout, config);
+
+  // Garante o resize se o container mudar de tamanho
+  setTimeout(() => Plotly.Plots.resize(el), 150);
+}
+
+function renderKpisHistoricoTop(anoSelecionado, mesSelecionado) {
+  const container = document.getElementById('kpis-historico-top');
+  if (!container || !dadosFluxoMensal || !dadosFluxoMensal.length) return;
+  container.innerHTML = '';
+
+  const registros = dadosFluxoMensal.filter(r => {
+    if (typeof r['DATA'] !== 'string') return false;
+    const [dia, mes, ano] = r['DATA'].split('/'); 
+    return ano === anoSelecionado && (!mesSelecionado || mes === mesSelecionado);
+  });
+
+  if (!registros.length) {
+    console.warn('⚠️ Nenhum registro encontrado para os KPIs.');
+    return;
+  }
+
+  registros.sort((a, b) => {
+    const [da, ma, aa] = a['DATA'].split('/');
+    const [db, mb, ab] = b['DATA'].split('/');
+    return new Date(`${aa}-${ma}-${da}`) - new Date(`${ab}-${mb}-${db}`);
+  });
+
+  const ultimo = registros[registros.length - 1];
+
+  const parseBRL = s => parseFloat(String(s).replace(/\./g, '').replace(',', '.')) || 0;
+  const formatBRL = n => n.toLocaleString('pt-BR', {
+    style: 'currency', currency: 'BRL', minimumFractionDigits: 2
+  });
+
+  const campos = [
+    'SALDO INICIAL',
+    'ENTRADAS',
+    'RENTABILIDADE',
+    'TOTAL REPASSE',
+    'SALDO FINAL'
+  ];
+
+  const items = campos.map(label => {
+    const bruto = ultimo[label];
+    const convertido = parseBRL(bruto);
+    console.log(`🔍 Campo: ${label} | Valor bruto: ${bruto} | Valor convertido: ${convertido}`);
+    return { label, valor: formatBRL(convertido) };
+  });
+
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'kpi-card';
+    card.innerHTML = `
+      <div class="valor">${item.valor}</div>
+      <div class="descricao">${item.label}</div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function filtrarTabelaHistoricoPorAno(anoSelecionado, dados) {
+  const selectMes = document.getElementById('mes-historico');
+  const mesAnterior = selectMes.value;
+  selectMes.innerHTML = '<option value="">Todos</option>';
+
+  const registrosAno = dados.filter(r => {
+    const d = r['Data'];
+    return typeof d === 'string' && d.split('/')[2] === anoSelecionado;
+  });
+
+  const hoje = new Date();
+  const anoAtual = String(hoje.getFullYear());
+  const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+
+  const mesesDisponiveis = Array.from(
+    new Set(registrosAno.map(r => r['Data'].split('/')[1]))
+  )
+    .filter(m => anoSelecionado < anoAtual || m <= mesAtual)
+    .sort();
+
+  const nomesMeses = {
+    '01': 'Janeiro','02': 'Fevereiro','03': 'Março','04': 'Abril',
+    '05': 'Maio','06': 'Junho','07': 'Julho','08': 'Agosto',
+    '09': 'Setembro','10': 'Outubro','11': 'Novembro','12': 'Dezembro'
+  };
+  mesesDisponiveis.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = nomesMeses[m] || m;
+    selectMes.appendChild(opt);
+  });
+
+  if (mesAnterior && Array.from(selectMes.options).some(o => o.value === mesAnterior)) {
+    selectMes.value = mesAnterior;
+  }
+
+  const tabela = Tabulator.findTable('#tabela-historico')[0];
+  if (!tabela) {
+    console.error('Tabela de histórico não inicializada!');
+    return;
+  }
+
+  tabela.clearFilter(true);
+  tabela.setFilter('Data', 'like', `/${anoSelecionado}`);
+  if (selectMes.value) {
+    tabela.addFilter('Data', 'like', `/${selectMes.value}/`);
+  }
+
+  const mesFinal = selectMes.value.padStart(2, '0'); // <- pad aqui também
+  renderKpisHistoricoTop(anoSelecionado, mesFinal);
+}
+
+function criarAnoToggleGroup(dadosSaidasConta) {
+  const anos = [...new Set(dadosSaidasConta.map(r => r['Data'].split('/')[2]))].sort();
+  const container = document.getElementById('ano-toggle-group');
+  container.innerHTML = '';
+
+  anos.forEach(ano => {
+    const btn = document.createElement('button');
+    btn.textContent = ano;
+    btn.className = 'toggle-button';
+    btn.dataset.ano = ano;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.toggle-button').forEach(b => b.classList.remove('ativo'));
+      btn.classList.add('ativo');
+      filtrarTabelaHistoricoPorAno(ano, dadosSaidasConta);
+    });
+    container.appendChild(btn);
+  });
+
+  // Dispara o filtro inicial com o último ano
+  if (anos.length) {
+    const ultimoAno = anos[anos.length - 1];
+    const botaoInicial = container.querySelector(`.toggle-button[data-ano="${ultimoAno}"]`);
+    if (botaoInicial) {
+      botaoInicial.classList.add('ativo');
+      filtrarTabelaHistoricoPorAno(ultimoAno, dadosSaidasConta);
+    }
+  }
+}
+
+function init() {
+  Promise.all([
+    fetch('data/setores_gov.csv').then(r => r.text()),
+    fetch('data/detalhado.csv').then(r => r.text()),
+    fetch('data/fluxomensal.csv').then(r => r.text()),
+    fetch('data/saidasconta.csv').then(r => r.text()),
+  ])
+  .then(([ts, tp, tf, tc]) => {
+    // Dados principais
+    dadosSetores = Papa.parse(ts, { header: true, delimiter: ';' })
+                     .data.filter(r => r['SETORES'] && r['VALOR PREVISTO']);
+
+    dadosProjetos = Papa.parse(tp, { header: true, delimiter: ';' })
+                     .data.filter(r => r['SETORES']);
+
+    dadosFluxoMensal = Papa.parse(tf, { header: true, delimiter: ';' })
+                            .data.filter(r => r['DATA'] && r['SALDO FINAL']);
+
+    console.log('🧾 Fluxo mensal carregado:', dadosFluxoMensal);
+
+    // Tabela principal
+    tabelaProjetos = new Tabulator('#tabela-container', {
+      data: dadosProjetos,
+      layout: 'fitColumns',
+      pagination: false,
+      height: '100%',
+      columns: [
+        { title: 'SETORES', field: 'SETORES' },
+        { title: 'ÓRGÃO', field: 'ÓRGÃO' },
+        { title: 'MUNICÍPIO', field: 'MUNICÍPIO' },
+        { title: 'PROJETO', field: 'PROJETO' },
+        { title: 'VALOR TOTAL DO PROJETO', field: 'VALOR TOTAL DO PROJETO' },
+        { title: 'ORÇAMENTO DISPONIBILIZADO', field: 'ORÇAMENTO DISPONIBILIZADO' },
+        { title: 'VALOR EMPENHADO', field: 'VALOR EMPENHADO' },
+        { title: 'VALOR LIQUIDADO', field: 'VALOR LIQUIDADO' },
+        { title: 'VALOR PAGO', field: 'VALOR PAGO' },
+        { title: 'SALDO', field: 'SALDO' },
+        {
+          title: "EXECUÇÃO FÍSICA",
+          field: "EXECUÇÃO FÍSICA",
+          sorter: "number",
+          mutator: (value) => parseFloat((value || '0').replace('%','').replace(',', '.')),
+          formatter: (cell) => cell.getValue() + "%"
+        },
+        {
+          title: "EXECUÇÃO FINANCEIRA",
+          field: "EXECUÇÃO FINANCEIRA",
+          sorter: "number",
+          mutator: (value) => parseFloat((value || '0').replace('%','').replace(',', '.')),
+          formatter: (cell) => cell.getValue() + "%"
+        },
+        { title: 'STATUS', field: 'STATUS' },
+        { title: 'OBSERVAÇÃO', field: 'OBSERVAÇÃO' }
+      ]
     });
 
-    tabelaProjetos.on('rowClick',(_,row) => {
+    // Espera a tabela estar pronta para desenhar o gráfico corretamente
+    tabelaProjetos.on("tableBuilt", function () {
+      drawMainChart();
+      drawAuxCharts();
+    });
+
+    tabelaProjetos.on('rowClick', (_, row) => {
       const data = row.getData();
-      if (JSON.stringify(linhaSelecionada) === JSON.stringify(data)) {
-        linhaSelecionada = null;
-      } else {
-        linhaSelecionada = data;
-      }
+      linhaSelecionada = JSON.stringify(linhaSelecionada) === JSON.stringify(data) ? null : data;
       drawAuxCharts();
     });
 
     fillDropdowns();
-    document.getElementById('tipo-grafico').addEventListener('change',() => {document.getElementById('filtro-setor').value='';document.getElementById('filtro-orgao').value='';ativoFiltro=null;tabelaProjetos.clearFilter();drawMainChart();drawAuxCharts();});
+
+    document.getElementById('tipo-grafico').addEventListener('change', () => {
+      document.getElementById('filtro-setor').value = '';
+      document.getElementById('filtro-orgao').value = '';
+      ativoFiltro = null;
+      tabelaProjetos.clearFilter();
+      drawMainChart();
+      drawAuxCharts();
+    });
+
     document.getElementById('filtro-setor').addEventListener('change', () => {
       const setor = document.getElementById('filtro-setor').value;
       atualizarDropdownOrgaos(setor);
       document.getElementById('filtro-orgao').value = '';
-    
-      linhaSelecionada = null; // <-- limpa seleção de linha
+      linhaSelecionada = null;
       applyFilters();
     });
+
     document.getElementById('filtro-orgao').addEventListener('change', () => {
       linhaSelecionada = null;
       applyFilters();
     });
 
-    drawMainChart();
-    drawAuxCharts();
-  }).catch(console.error);
+    // Histórico bancário
+    const parsedFluxo = Papa.parse(tf, {
+      header: true,
+      delimiter: ';',
+      skipEmptyLines: true,
+      transformHeader: h => h.trim(),
+    }).data;
+    dadosHistoricoGlobal = parsedFluxo.filter(r => r['DATA']);
+
+    const parsedSaidas = Papa.parse(tc, {
+      header: true,
+      delimiter: ';',
+      skipEmptyLines: true,
+      transformHeader: h => h.trim(),
+    }).data;
+    dadosSaidasConta = parsedSaidas.filter(r => r['Data']);
+
+    renderTabelaHistorico(dadosSaidasConta);
+
+    // Criação dos botões de ano
+    const anos = [...new Set(dadosSaidasConta.map(r => r['Data'].split('/')[2]))].sort();
+    const container = document.getElementById('ano-toggle-group');
+    container.innerHTML = '';
+
+    anos.forEach(ano => {
+      const btn = document.createElement('button');
+      btn.textContent = ano;
+      btn.className = 'toggle-button';
+      btn.dataset.ano = ano;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.toggle-button').forEach(b => b.classList.remove('ativo'));
+        btn.classList.add('ativo');
+        filtrarTabelaHistoricoPorAno(ano, dadosSaidasConta);
+      });
+      container.appendChild(btn);
+    });
+
+    // Filtro inicial com o último ano disponível
+    if (anos.length) {
+      const ultimoAno = anos[anos.length - 1];
+      const botaoInicial = container.querySelector(`.toggle-button[data-ano="${ultimoAno}"]`);
+      if (botaoInicial) {
+        botaoInicial.classList.add('ativo');
+        filtrarTabelaHistoricoPorAno(ultimoAno, dadosSaidasConta);
+      }
+    }
+
+    // Filtro de mês
+    document.getElementById('mes-historico').addEventListener('change', () => {
+      const anoSelecionado = document.querySelector('.toggle-button.ativo')?.dataset.ano;
+      const mesSelecionado = document.getElementById('mes-historico').value;
+      if (!anoSelecionado || !mesSelecionado) return;
+
+      const dadosFiltrados = dadosSaidasConta.filter(r => {
+        const [dia, mes, ano] = r['Data'].split('/');
+        return ano === anoSelecionado && mes === mesSelecionado;
+      });
+
+      renderTabelaHistorico(dadosFiltrados);
+      renderKpisHistoricoTop(anoSelecionado, mesSelecionado);
+    });
+  })
+  .catch(console.error);
 }
 
-// Inicia tudo após carregamento do DOM
 document.addEventListener('DOMContentLoaded', init);

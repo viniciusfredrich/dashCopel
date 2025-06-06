@@ -13,31 +13,31 @@
 <body>
 
   <main class="dashboard-container">
+
+    <!-- filtros gerais -->
     <div class="filtros-container">
-      <!-- Menu de Abas como Dropdown -->
       <label for="menu-abas">Menu:</label>
       <select id="menu-abas" onchange="mostrarAbaDropdown(this.value)">
         <option value="aba-copel">COPEL</option>
         <option value="aba-historico">Histórico Bancário</option>
       </select>
-  
-      <!-- Filtros específicos da aba COPEL -->
+
       <div id="filtros-copel" style="display: flex; gap: 0.8rem; align-items: center;">
         <select id="tipo-grafico">
           <option value="governador">Valores definidos pelo Governador</option>
           <option value="orgaos">Valores planejados pelos Órgãos</option>
           <option value="comparacao1">Comparação entre valores definidos pelo Governador e planejados pelos Órgãos</option>
         </select>
-  
+
         <label for="filtro-setor">Filtrar por Setor:</label>
         <select id="filtro-setor"><option value="">Todos</option></select>
-  
+
         <label for="filtro-orgao">Filtrar por Órgão:</label>
         <select id="filtro-orgao"><option value="">Todos</option></select>
       </div>
     </div>
-  
-    <!-- Abas reais (escondidas/mostradas via JS) -->
+
+    <!-- aba COPEL -->
     <section id="aba-copel" class="aba ativa">
       <div id="espaco-graficos">
         <div id="grafico-principal"></div>
@@ -48,22 +48,35 @@
         <div id="tabela-container"></div>
       </div>
     </section>
-  
+
+    <!-- aba HISTÓRICO -->
     <section id="aba-historico" class="aba">
-      <h2 style="font-size: 1.2rem; margin-bottom: 1rem;">Evolução do Saldo da Conta dos Recursos da COPEL</h2>
-      
-      <div class="filtros-historico" style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+      <h2 class="titulo-historico">Evolução do Saldo da Conta dos Recursos da COPEL</h2>
+
+      <!-- 1) Toggles + KPIs de topo -->
+      <div class="filtros-historico" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
         <label for="ano-historico">Ano:</label>
-        <select id="ano-historico"></select>
-  
+        <div id="ano-toggle-group" class="toggle-group-azul"></div>
+
         <label for="mes-historico">Mês:</label>
         <select id="mes-historico"></select>
+
+        <!-- container PARA OS 5 KPIs DO MÊS -->
+        <div id="kpis-historico-top" class="kpis-historico"></div>
       </div>
-  
-      <div id="kpis-historico" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem;"></div>
-      <div id="grafico-historico" style="width: 100%; height: 350px; margin-bottom: 2rem;"></div>
-      <div id="tabela-historico"></div>
+
+      <!-- 2) Gráfico Histórico -->
+      <div id="grafico-historico"></div>
+
+      <!-- 3) Tabela + KPI total repassado -->
+      <div id="dashboard-historico-tabela">
+        <div id="tabela-historico"></div>
+        <div id="kpi-total-repasse" style="margin-top:1rem;"></div>
+      </div>
     </section>
+
   </main>
-  
+
   <script src="js/scripts.js"></script>
+</body>
+</html>

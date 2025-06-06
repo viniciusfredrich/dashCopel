@@ -10,6 +10,7 @@ html, body {
   overflow: hidden;
   background-color: #f5f5f5;
   color: #333;
+  height: 100%;   
 }
 
 /* Corpo com padding reduzido no topo */
@@ -114,7 +115,7 @@ header h1 {
   height: 90%;
 }
 
-/* Tabela - COPPEL */
+/* Tabela - COPEL */
 #dashboard-tabela {
   width: 100%;
   height: 48vh;
@@ -133,69 +134,21 @@ header h1 {
   overflow: hidden;
 }
 
-/* Tabela - Histórico Bancário */
-#tabela-historico {
+/* Controle de abas */
+.aba {
+  visibility: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 38vh;
-  margin-top: 1vh;
-  margin-left: 1rem;
-  margin-right: 1rem;
-  border: 0.15rem solid #ccc;
-  border-radius: 0.3rem;
-  background-color: white;
-  padding: 0.5rem;
+  height: 0;
   overflow: hidden;
 }
 
-/* Estilos específicos da Tabulator */
-.tabulator-table {
-  table-layout: fixed !important;
-  width: 100% !important;
-}
-
-.tabulator-tableHolder {
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-}
-
-.tabulator-cell {
-  white-space: normal !important;
-  word-break: break-word !important;
-  vertical-align: top !important;
-  padding: 0.3rem 0.4rem !important;
-}
-
-.tabulator {
-  background-color: white !important;
-}
-
-.tabulator-header {
-  white-space: normal !important;
-  background-color: white !important;
-  padding-top: 0.2rem !important;
-  padding-bottom: 0.2rem !important;
-  min-height: 2.2rem;
-}
-
-.tabulator-col-title {
-  white-space: normal !important;
-  font-size: 0.7rem;
-  min-height: 2.2rem;
-}
-
-/* Formatter estilo textarea */
-.wrap-text {
-  white-space: pre-wrap !important;
-  font-size: 0.75rem !important;
-}
-
-/* Controle de abas */
-.aba {
-  display: none;
-}
-
 .aba.ativa {
-  display: block;
+  visibility: visible;
+  position: static;
+  height: auto;
 }
 
 /* Título seção histórico bancário */
@@ -204,14 +157,6 @@ header h1 {
   font-weight: bold;
   margin: 0 0 1vh 1rem;
   color: #1a1a1a;
-}
-
-/* Container dos KPIs */
-.kpis-historico {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin: 0 0 1vh 1rem;
 }
 
 .kpi-card {
@@ -234,13 +179,196 @@ header h1 {
   color: #666;
 }
 
-/* Espaço gráfico histórico */
-#grafico-historico {
-  height: 40vh;
-  width: 100%;
-  border-radius: 0.3rem;
-  background-color: white;
-  box-shadow: 0 0.15rem 0.4rem rgba(0, 0, 0, 0.1);
-  padding: 1rem;
-  margin: 1vh 1rem;
+
+/* Garantir scroll vertical dentro da tabela quando necessário */
+.tabulator-tableHolder {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.toggle-group-azul {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.toggle-azul {
+  background-color: #3E8ACC;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-azul.ativo {
+  background-color: #1c6fb8;
+}
+
+.toggle-azul:hover {
+  background-color: #1c6fb8;
+}
+
+/* ==========================================================================
+   1) Linha de Toggles + KPIs de Topo
+   ========================================================================== */
+   .filtros-historico {
+    display: flex;           /* tudo em linha */
+    align-items: center;     /* centraliza verticalmente */
+    gap: 1rem;               /* espaçamento entre elementos */
+    margin-bottom: 1rem;     /* distancia do gráfico */
+  }
+
+/* — Gráfico Histórico — 
+   Define o container do gráfico com mesmo comportamento dos gráficos da aba COPEL */
+   #grafico-historico {
+    width: 100%;                    /* ocupa toda a largura disponível */
+    height: 35vh;                   /* 45% da altura da viewport, igual ao wrapper de gráficos */
+    margin-bottom: 3vh;             /* espaçamento inferior igual aos gráficos da COPEL */
+    background: white;              /* fundo branco para destaque */
+    border-radius: 0.3rem;          /* cantos arredondados */
+    box-shadow: 0 0.15rem 0.5rem rgba(0,0,0,0.1); /* sombra suave */
+    padding: 0;                     /* sem padding interno */
+  }
+  
+  /* — Wrapper Tabela + KPI — 
+     Cria um container com altura fixa em vh para englobar tabela e KPIs juntos */
+  #dashboard-historico-tabela {
+    width: 100%;                    /* largura total */
+    height: 54vh;                   /* 40% da altura da viewport, um pouco menor que a COPEL (48vh) */
+    display: flex;                  /* flex para organizar tabela e KPI em coluna */
+    flex-direction: column;         /* empilha verticalmente */
+    margin-top: 0vh;               /* “puxa” um pouco pra cima, igual à aba COPEL */
+    overflow: hidden;               /* evita que filho extrapole este wrapper */
+    gap: 1rem;                      /* espaço entre tabela e KPI */
+    padding-bottom: 2vh;          /* 2% da altura da viewport */
+    box-sizing: border-box;       /* para incluir o padding na altura total */
+  }
+  
+  /* — Tabela Histórica — 
+     Ocupa 100% da altura do wrapper e vira scroll interno se precisar */
+  #tabela-historico {
+    width: 100%;
+    height: auto;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  
+  /* — KPIs — 
+     Container onde ficam os cards de KPIs, logo abaixo da tabela */
+  .kpis-historico {
+    display: flex;                  /* exibe cards em linha */
+    gap: 1.5rem;                    /* espaçamento entre cards */
+    align-items: center;            /* centraliza verticalmente os cards */
+    min-height: 4rem;               /* altura minima */
+  }
+
+  /* Reaproveita o estilo de .kpis-historico para o topo */
+.kpis-historico {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-left: auto;   /* empurra para a direita ao lado dos toggles */
+}
+
+/* Estilo do KPI único (pode ajustar conforme .kpi-card) */
+#kpi-total-repasse .kpi-card {
+  margin: 0;           /* sem margin extra */
+}
+
+  .kpis-copel {
+    display: flex;
+    gap: 1.5rem;        /* espaçamento entre cada card */
+    align-items: center;/* centra verticalmente */
+    margin-left: auto;  /* empurra tudo para a direita */
+  }
+  
+  /* — Tabulator: layout fixo e wrap — 
+     Garante que colunas não estiquem a tabela e que texto quebre linha */
+  .tabulator-table {
+    table-layout: fixed !important; /* colunas têm largura fixa */
+    width: 100% !important;         /* força largura total */
+  }
+  
+  /* — Scroll interno apenas na vertical — */
+  .tabulator .tabulator-tableHolder {
+    overflow-y: auto !important;    /* scroll vertical quando conteúdo exceder a altura */
+    overflow-x: hidden !important;  /* impede scroll horizontal */
+  }
+  
+  /* — Quebra de linha em células e títulos — */
+  .tabulator .tabulator-cell,
+  .tabulator .tabulator-header .tabulator-col-title {
+    white-space: normal !important; /* permite quebra de linha no texto */
+    word-break: break-word !important; /* força quebra em palavras longas */
+    vertical-align: top !important; /* alinha o conteúdo ao topo da célula */
+  }
+
+/* Tabulator: wrap e scroll vertical */
+.tabulator .tabulator-tableHolder {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+.tabulator .tabulator-cell,
+.tabulator .tabulator-header .tabulator-col-title {
+  white-space: normal !important;
+  word-break: break-word !important;
+  vertical-align: top !important;
+}
+
+.tabulator .tabulator-header .tabulator-col-title {
+  font-size: 0.625rem !important;         /* equivalente a 10px */
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  height: auto !important;
+}
+
+.tabulator-header .tabulator-col {
+  height: auto !important;
+  min-height: unset !important;
+}
+
+/*
+
+/* Tamanho da fonte e quebra de linha nos TÍTULOS das colunas */
+.tabulator .tabulator-header .tabulator-col-title {
+  font-size: 0.625rem !important;         /* equivalente a 10px */
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  height: auto !important;
+}
+
+/* Garante que os cabeçalhos acompanhem a altura necessária */
+.tabulator .tabulator-header .tabulator-col {
+  height: auto !important;
+  min-height: unset !important;
+}
+
+/* Tamanho da fonte e quebra nas CÉLULAS */
+.tabulator .tabulator-cell {
+  font-size: 0.75rem !important;        /* equivalente a 12px */
+  white-space: normal !important;       /* permite múltiplas linhas */
+  word-break: break-word !important;    /* quebra palavras grandes */
+  overflow-wrap: break-word !important; /* compatibilidade adicional */
+  vertical-align: top !important;       /* conteúdo começa no topo da célula */
+  line-height: 1.2 !important;          /* melhora legibilidade */
+}
+
+.toggle-button {
+  padding: 0.4rem 0.8rem;
+  background-color: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.toggle-button.ativo {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
 }

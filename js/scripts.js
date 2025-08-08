@@ -658,7 +658,7 @@ function criarAnoToggleGroup(dadosSaidasConta) {
 function init() {
   Promise.all([
     fetch('data/setores_gov.csv').then(r => r.text()),
-    fetch('data/data_frame_principal_sem_contrato.csv').then(r => r.text()),
+    fetch('data/o_corpo.csv').then(r => r.text()),
     fetch('data/fluxomensal.csv').then(r => r.text()),
     fetch('data/saidasconta.csv').then(r => r.text()),
   ])

@@ -278,7 +278,7 @@ function drawExecucaoFisicaChart() {
     autosize: true,
     margin: { t: 40, b: 50, l: 20, r: 20 },
     xaxis: { automargin: true },
-    yaxis: { range: [0, 60], automargin: true }
+    yaxis: { range: [0, 70], automargin: true }
   };
 
   const trace = [{
@@ -658,7 +658,7 @@ function criarAnoToggleGroup(dadosSaidasConta) {
 function init() {
   Promise.all([
     fetch('data/setores_gov.csv').then(r => r.text()),
-    fetch('data/dia12082025.csv').then(r => r.text()),
+    fetch('data/12082025-csv.csv').then(r => r.text()),
     fetch('data/fluxomensal.csv').then(r => r.text()),
     fetch('data/saidasconta.csv').then(r => r.text()),
   ])

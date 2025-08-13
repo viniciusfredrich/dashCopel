@@ -1,7 +1,10 @@
 // scripts.js
 // Dashboard interativo: Gráfico Principal, Execução Física e Comparativo Físico x Financeiro
 
-
+// helpers numéricos (use globalmente)
+const parseBRL = (s) => parseFloat(String(s ?? '0').replace(/\./g, '').replace(',', '.')) || 0;
+const fmtBRL = (n) => Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const parsePct = (s) => parseFloat(String(s ?? '0').replace('%','').replace(',', '.')) || 0;
 
 function mostrarAbaDropdown(id) {
   document.querySelectorAll('.aba').forEach(aba => aba.classList.remove('ativa'));
@@ -73,14 +76,14 @@ function drawMainChart() {
     // Agrupar valores
     dadosSetores.forEach(r => {
       const setor = r['SETORES'];
-      gov[setor] = parseFloat(r['VALOR PREVISTO']) || 0;
+      gov[setor] = parseBRL(r['VALOR PREVISTO']);
     });
   
     dadosProjetos.forEach(r => {
       const setor = r['SETORES'];
       const orgao = r['ÓRGÃO'];
-      const tv = parseFloat((r['VALOR TOTAL DO PROJETO'] || '0').replace(/\./g, '').replace(',', '.')) || 0;
-      const tp = parseFloat((r['VALOR PAGO'] || '0').replace(/\./g, '').replace(',', '.')) || 0;
+      const tv = parseBRL(r['VALOR TOTAL DO PROJETO']);
+      const tp = parseBRL(r['VALOR PAGO']);
   
       // Planejamento por órgão
       if (!plan[setor]) plan[setor] = {};
@@ -156,15 +159,15 @@ function drawMainChart() {
   } else {
     const mapFonte = tipo === 'orgaos'
       ? dadosProjetos.reduce((acc, r) => {
-        const org = r['ÓRGÃO'];
-        const v = parseFloat((r['VALOR TOTAL DO PROJETO'] || '0').replace(/\./g, '').replace(',', '.')) || 0;
-        acc[org] = (acc[org] || 0) + v;
-        return acc;
-      }, {})
+          const org = r['ÓRGÃO'];
+          const v = parseBRL(r['VALOR TOTAL DO PROJETO']);
+          acc[org] = (acc[org] || 0) + v;
+          return acc;
+        }, {})
       : dadosSetores.reduce((acc, r) => {
-        acc[r['SETORES']] = parseFloat(r['VALOR PREVISTO']);
-        return acc;
-      }, {});
+          acc[r['SETORES']] = parseBRL(r['VALOR PREVISTO']);
+          return acc;
+        }, {});
 
     const labels = Object.keys(mapFonte);
     const values = Object.values(mapFonte);
@@ -456,8 +459,8 @@ function plotarGraficoHistorico(dados) {
 
   dados.forEach(linha => {
     datas.push(linha['DATA']);
-    saldoFinal.push(parseFloat(linha['SALDO FINAL'] || 0) / 1e9);
-    repassesAcumulados.push(parseFloat(linha['TOTAL REPASSE'] || 0) / 1e9);
+    saldoFinal.push(parseBRL(linha['SALDO FINAL']) / 1e9);
+    repassesAcumulados.push(parseBRL(linha['TOTAL REPASSE']) / 1e9);
   });
 
   const formatarValor = v => v >= 1e9
@@ -543,7 +546,6 @@ function renderKpisHistoricoTop(anoSelecionado, mesSelecionado) {
 
   const ultimo = registros[registros.length - 1];
 
-  const parseBRL = s => parseFloat(String(s).replace(/\./g, '').replace(',', '.')) || 0;
   const formatBRL = n => n.toLocaleString('pt-BR', {
     style: 'currency', currency: 'BRL', minimumFractionDigits: 2
   });
@@ -686,28 +688,57 @@ function init() {
         { title: 'ÓRGÃO', field: 'ÓRGÃO' },
         { title: 'MUNICÍPIO', field: 'MUNICÍPIO' },
         { title: 'PROJETO', field: 'PROJETO' },
-        { title: 'VALOR TOTAL DO PROJETO', field: 'VALOR TOTAL DO PROJETO' },
-        { title: 'ORÇAMENTO DISPONIBILIZADO', field: 'ORÇAMENTO DISPONIBILIZADO' },
-        { title: 'VALOR EMPENHADO', field: 'VALOR EMPENHADO' },
-        { title: 'VALOR LIQUIDADO', field: 'VALOR LIQUIDADO' },
-        { title: 'VALOR PAGO', field: 'VALOR PAGO' },
-        { title: 'SALDO', field: 'SALDO' },
-        {
-          title: "EXECUÇÃO FÍSICA",
-          field: "EXECUÇÃO FÍSICA",
-          sorter: "number",
-          mutator: (value) => parseFloat((value || '0').replace('%','').replace(',', '.')),
-          formatter: (cell) => cell.getValue() + "%"
+
+        { title: 'VALOR TOTAL DO PROJETO', field: 'VALOR TOTAL DO PROJETO',
+          sorter: 'number',
+          hozAlign:'right',
+          mutator: (v) => parseBRL(v),
+          formatter: (cell) => fmtBRL(cell.getValue())
         },
-        {
-          title: "EXECUÇÃO FINANCEIRA",
-          field: "EXECUÇÃO FINANCEIRA",
-          sorter: "number",
-          mutator: (value) => parseFloat((value || '0').replace('%','').replace(',', '.')),
-          formatter: (cell) => cell.getValue() + "%"
+        { title: 'ORÇAMENTO DISPONIBILIZADO', field: 'ORÇAMENTO DISPONIBILIZADO',
+          sorter: 'number',
+          hozAlign:'right',
+          mutator: (v) => parseBRL(v),
+          formatter: (cell) => fmtBRL(cell.getValue())
         },
+        { title: 'VALOR EMPENHADO', field: 'VALOR EMPENHADO',
+          sorter: 'number',
+          hozAlign:'right',
+          mutator: (v) => parseBRL(v),
+          formatter: (cell) => fmtBRL(cell.getValue())
+        },
+        { title: 'VALOR LIQUIDADO', field: 'VALOR LIQUIDADO',
+          sorter: 'number',
+          hozAlign:'right',
+          mutator: (v) => parseBRL(v),
+          formatter: (cell) => fmtBRL(cell.getValue())
+        },
+        { title: 'VALOR PAGO', field: 'VALOR PAGO',
+          sorter: 'number',
+          hozAlign:'right',
+          mutator: (v) => parseBRL(v),
+          formatter: (cell) => fmtBRL(cell.getValue())
+        },
+        { title: 'SALDO', field: 'SALDO',
+          sorter: 'number',
+          hozAlign:'right',
+          mutator: (v) => parseBRL(v),
+          formatter: (cell) => fmtBRL(cell.getValue())
+        },
+
+        { title: 'EXECUÇÃO FÍSICA', field: 'EXECUÇÃO FÍSICA',
+          sorter: 'number',
+          mutator: (v) => parsePct(v),
+          formatter: (cell) => cell.getValue() + '%'
+        },
+        { title: 'EXECUÇÃO FINANCEIRA', field: 'EXECUÇÃO FINANCEIRA',
+          sorter: 'number',
+          mutator: (v) => parsePct(v),
+          formatter: (cell) => cell.getValue() + '%'
+        },
+
         { title: 'STATUS', field: 'STATUS' },
-        { title: 'OBSERVAÇÃO', field: 'OBSERVAÇÃO' }
+        { title: 'OBSERVAÇÃO', field: 'OBSERVAÇÃO' },
       ]
     });
 

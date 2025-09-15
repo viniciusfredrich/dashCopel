@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Execução dos Recursos Provenientes da Venda de Ações da COPEL</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <link href="https://unpkg.com/tabulator-tables@5.4.4/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/tabulator-tables@5.4.4/dist/js/tabulator.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body>
+
+  <main class="dashboard-container">
+
+    <!-- filtros gerais -->
+    <div class="filtros-container">
+      <label for="menu-abas">Menu:</label>
+      <select id="menu-abas" onchange="mostrarAbaDropdown(this.value)">
+        <option value="aba-copel">COPEL</option>
+        <option value="aba-historico">Histórico Bancário</option>
+      </select>
+
+      <div id="filtros-copel" style="display: flex; gap: 0.8rem; align-items: center;">
+        <select id="tipo-grafico">
+          <option value="governador">Valores definidos pelo Governador</option>
+          <option value="orgaos">Valores planejados pelos Órgãos</option>
+          <option value="comparacao1">Comparação entre valores definidos pelo Governador e planejados pelos Órgãos</option>
+        </select>
+
+        <label for="filtro-setor">Filtrar por Setor:</label>
+        <select id="filtro-setor"><option value="">Todos</option></select>
+
+        <label for="filtro-orgao">Filtrar por Órgão:</label>
+        <select id="filtro-orgao"><option value="">Todos</option></select>
+      </div>
+    </div>
+
+    <!-- aba COPEL -->
+    <section id="aba-copel" class="aba ativa">
+      <div id="espaco-graficos">
+        <div id="grafico-principal"></div>
+        <div id="grafico-distribuicao"></div>
+        <div id="grafico-comparativo"></div>
+      </div>
+      <div id="dashboard-tabela">
+        <div id="tabela-container"></div>
+      </div>
+    </section>
+
+    <!-- aba HISTÓRICO -->
+    <section id="aba-historico" class="aba">
+      <h2 class="titulo-historico">Evolução do Saldo da Conta dos Recursos da COPEL</h2>
+
+      <!-- 1) Toggles + KPIs de topo -->
+      <div class="filtros-historico" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+        <label for="ano-historico">Ano:</label>
+        <div id="ano-toggle-group" class="toggle-group-azul"></div>
+
+        <label for="mes-historico">Mês:</label>
+        <select id="mes-historico"></select>
+
+        <!-- container PARA OS 5 KPIs DO MÊS -->
+        <div id="kpis-historico-top" class="kpis-historico"></div>
+      </div>
+
+      <!-- 2) Gráfico Histórico -->
+      <div id="grafico-historico"></div>
+
+      <!-- 3) Tabela + KPI total repassado -->
+      <div id="dashboard-historico-tabela">
+        <div id="tabela-historico"></div>
+        <div id="kpi-total-repasse" style="margin-top:1rem;"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/scripts.js"></script>
+</body>
+</html>
